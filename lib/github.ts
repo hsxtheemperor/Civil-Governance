@@ -1,6 +1,10 @@
-const REPO = 'hsxtheemperor/Code-Of-Conduct'
+const REPO = 'hsxtheemperor/Civil-Governance'
 const API_BASE = 'https://api.github.com'
-const PAT = process.env.GITHUB_PAT || process.env.NEXT_PUBLIC_GITHUB_PAT
+const PAT = process.env.GITHUB_PAT
+
+if (!PAT) {
+  console.error('[CJP] GITHUB_PAT environment variable is not set')
+}
 
 export interface GitHubIssue {
   id: number
@@ -36,7 +40,7 @@ export const getHeaders = () => ({
 export async function getIssues() {
   try {
     const response = await fetch(
-      `${API_BASE}/repos/${REPO}/issues?state=all&sort=created&direction=desc`,
+      `${API_BASE}/repos/${REPO}/issues?state=all&sort=created&direction=desc&labels=cjp-issue`,
       { headers: getHeaders() }
     )
 
@@ -117,7 +121,7 @@ export async function addReaction(
 export async function getDebateLogs() {
   try {
     const response = await fetch(
-      `${API_BASE}/repos/${REPO}/contents/debate-logs`,
+      `${API_BASE}/repos/${REPO}/contents/debates`,
       { headers: getHeaders() }
     )
 
@@ -145,7 +149,7 @@ export async function getDebateLogContent(
 ) {
   try {
     const response = await fetch(
-      `${API_BASE}/repos/${REPO}/contents/debate-logs/${filename}`,
+      `${API_BASE}/repos/${REPO}/contents/debates/${filename}`,
       { headers: getHeaders() }
     )
 
@@ -192,6 +196,60 @@ export async function getFileContent(
     return Buffer.from(data.content, (data.encoding as BufferEncoding) || 'base64').toString('utf-8')
   } catch (error) {
     console.error('Error fetching file:', error)
+    throw error
+  }
+}
+
+export async function getCoCSuggestions() {
+  try {
+    const response = await fetch(
+      `${API_BASE}/repos/${REPO}/issues?state=all&sort=created&direction=desc&labels=coc-suggestion`,
+      { headers: getHeaders() }
+    )
+
+    if (response.status === 401) {
+      throw new Error('Invalid or expired token.')
+    }
+    if (response.status === 403) {
+      throw new Error('Rate limit reached. Try again in a few minutes.')
+    }
+    if (!response.ok) throw new Error('Failed to fetch CoC suggestions')
+
+    return (await response.json()) as GitHubIssue[]
+  } catch (error) {
+    console.error('Error fetching CoC suggestions:', error)
+    throw error
+  }
+}
+
+export async function createCoCsuggestion(
+  title: string,
+  body: string,
+  currentCoC: string
+) {
+  try {
+    const fullBody = `## Suggested Change\n${body}\n\n## Current CoC Section\n${currentCoC}`
+    const response = await fetch(`${API_BASE}/repos/${REPO}/issues`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify({
+        title,
+        body: fullBody,
+        labels: ['coc-suggestion'],
+      }),
+    })
+
+    if (response.status === 401) {
+      throw new Error('Invalid or expired token.')
+    }
+    if (response.status === 403) {
+      throw new Error('Rate limit reached. Try again in a few minutes.')
+    }
+    if (!response.ok) throw new Error('Failed to create suggestion')
+
+    return (await response.json()) as GitHubIssue
+  } catch (error) {
+    console.error('Error creating CoC suggestion:', error)
     throw error
   }
 }

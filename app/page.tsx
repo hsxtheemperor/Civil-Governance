@@ -2,13 +2,16 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { getIssues, getDebateLogs } from '@/lib/github'
+import { getIssues, getDebateLogs, getCoCSuggestions, getFileContent } from '@/lib/github'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
+import { MarkdownRenderer } from '@/components/MarkdownRenderer'
 
 export default function HomePage() {
   const [issues, setIssues] = useState<any[]>([])
   const [debateLogs, setDebateLogs] = useState<Set<number>>(new Set())
+  const [cocSuggestions, setCocSuggestions] = useState<any[]>([])
+  const [coc, setCoC] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -19,12 +22,16 @@ export default function HomePage() {
   async function loadData() {
     try {
       setLoading(true)
-      const [issuesData, logsData] = await Promise.all([
+      const [issuesData, logsData, suggestionsData, cocData] = await Promise.all([
         getIssues(),
-        getDebateLogs()
+        getDebateLogs(),
+        getCoCSuggestions(),
+        getFileContent('code-of-conduct.md')
       ])
       
       setIssues(issuesData)
+      setCocSuggestions(suggestionsData)
+      if (cocData) setCoC(cocData)
       
       // Extract issue numbers from debate log filenames
       const resolvedIssues = new Set(
@@ -36,8 +43,8 @@ export default function HomePage() {
       setDebateLogs(resolvedIssues)
       setError(null)
     } catch (err) {
-      console.error('[v0] Error loading data:', err)
-      setError('Failed to load issues. Check GitHub PAT configuration.')
+      console.error('[CJP] Error loading data:', err)
+      setError('Failed to load data. Please check GitHub configuration.')
     } finally {
       setLoading(false)
     }
@@ -64,7 +71,7 @@ export default function HomePage() {
           </p>
           
           {/* Action Buttons */}
-          <div className="flex gap-4 flex-wrap">
+          <div className="flex gap-4 flex-wrap mb-8">
             <Link
               href="/problems"
               className="px-6 py-3 bg-amber-500 text-slate-900 rounded-lg font-semibold hover:bg-amber-400 transition"
@@ -77,11 +84,33 @@ export default function HomePage() {
             >
               View All Issues
             </Link>
+            <Link
+              href="/coc-suggestions"
+              className="px-6 py-3 border border-blue-500 text-blue-400 rounded-lg font-semibold hover:bg-blue-500 hover:text-slate-900 transition"
+            >
+              Suggest CoC Changes
+            </Link>
           </div>
+
+          {/* Code of Conduct Preview */}
+          {coc && (
+            <div className="mb-12 bg-slate-800 border border-slate-700 rounded-lg p-8">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-2xl font-bold">Code of Conduct</h2>
+                <Link href="/coc-suggestions" className="text-blue-400 hover:text-blue-300 text-sm">
+                  Suggest Changes →
+                </Link>
+              </div>
+              <div className="markdown text-sm text-gray-300 max-h-64 overflow-hidden relative">
+                <MarkdownRenderer content={coc} />
+                <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-slate-800 to-transparent pointer-events-none" />
+              </div>
+            </div>
+          )}
         </section>
 
         {/* Stats */}
-        <section className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-16">
+        <section className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-16">
           <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
             <div className="text-4xl font-bold text-amber-500">{issues.length}</div>
             <p className="text-gray-300 mt-2">Total Issues</p>
@@ -97,6 +126,10 @@ export default function HomePage() {
           <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
             <div className="text-4xl font-bold text-green-400">{resolvedIssues.length}</div>
             <p className="text-gray-300 mt-2">Resolved</p>
+          </div>
+          <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+            <div className="text-4xl font-bold text-blue-400">{cocSuggestions.length}</div>
+            <p className="text-gray-300 mt-2">CoC Suggestions</p>
           </div>
         </section>
 

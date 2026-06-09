@@ -17,12 +17,30 @@ export default function Header() {
           </div>
         </Link>
 
-        <nav className="flex items-center gap-4">
+        <nav className="flex items-center gap-2">
+          <Link
+            href="/"
+            className="px-4 py-2 text-gray-300 hover:text-white transition text-sm"
+          >
+            Home
+          </Link>
           <Link
             href="/issues"
             className="px-4 py-2 text-gray-300 hover:text-white transition text-sm"
           >
             Issues
+          </Link>
+          <Link
+            href="/coc-suggestions"
+            className="px-4 py-2 text-gray-300 hover:text-white transition text-sm"
+          >
+            CoC
+          </Link>
+          <Link
+            href="/terms-of-suggestions"
+            className="px-4 py-2 text-gray-300 hover:text-white transition text-sm"
+          >
+            Terms
           </Link>
           <Link
             href="/problems"
