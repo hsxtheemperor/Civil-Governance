@@ -1,0 +1,58 @@
+@import "tailwindcss";
+
+html {
+  background-color: #0f172a;
+  color: #ffffff;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+}
+
+/* Markdown styles */
+.markdown h1 {
+  @apply text-4xl font-bold mt-8 mb-4;
+}
+
+.markdown h2 {
+  @apply text-3xl font-bold mt-6 mb-3;
+}
+
+.markdown h3 {
+  @apply text-2xl font-bold mt-4 mb-2;
+}
+
+.markdown h4 {
+  @apply text-xl font-bold mt-3 mb-2;
+}
+
+.markdown p {
+  @apply my-4 leading-relaxed;
+}
+
+.markdown ul,
+.markdown ol {
+  @apply my-4 ml-6;
+}
+
+.markdown li {
+  @apply my-2;
+}
+
+.markdown code {
+  @apply bg-gray-800 px-2 py-1 rounded text-sm font-mono;
+}
+
+.markdown a {
+  @apply text-amber-500 hover:text-amber-400 underline;
+}
+
+.markdown blockquote {
+  @apply border-l-4 border-amber-500 pl-4 italic my-4 text-gray-300;
+}
+
+.markdown hr {
+  @apply my-8 border-gray-700;
+}
