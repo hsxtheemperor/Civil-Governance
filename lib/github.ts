@@ -1,5 +1,6 @@
 const REPO = 'hsxtheemperor/Code-Of-Conduct'
 const API_BASE = 'https://api.github.com'
+const PAT = process.env.GITHUB_PAT || process.env.NEXT_PUBLIC_GITHUB_PAT
 
 export interface GitHubIssue {
   id: number
@@ -10,6 +11,7 @@ export interface GitHubIssue {
   created_at: string
   user: { login: string }
   reactions: { '+1': number }
+  state: 'open' | 'closed'
 }
 
 export interface GitHubFile {
@@ -23,18 +25,19 @@ export interface GitHubFile {
 export interface GitHubContent {
   content: string
   encoding: string
+  sha: string
 }
 
-export const getHeaders = (pat: string | null) => ({
+export const getHeaders = () => ({
   'Accept': 'application/vnd.github.v3+json',
-  ...(pat ? { 'Authorization': `Bearer ${pat}` } : {}),
+  ...(PAT ? { 'Authorization': `Bearer ${PAT}` } : {}),
 })
 
-export async function getIssues(pat: string | null) {
+export async function getIssues() {
   try {
     const response = await fetch(
-      `${API_BASE}/repos/${REPO}/issues?state=open&sort=created&direction=desc`,
-      { headers: getHeaders(pat) }
+      `${API_BASE}/repos/${REPO}/issues?state=all&sort=created&direction=desc`,
+      { headers: getHeaders() }
     )
 
     if (response.status === 401) {
@@ -53,15 +56,15 @@ export async function getIssues(pat: string | null) {
 }
 
 export async function createIssue(
-  pat: string,
   title: string,
-  body: string
+  body: string,
+  labels: string[] = []
 ) {
   try {
     const response = await fetch(`${API_BASE}/repos/${REPO}/issues`, {
       method: 'POST',
-      headers: getHeaders(pat),
-      body: JSON.stringify({ title, body }),
+      headers: getHeaders(),
+      body: JSON.stringify({ title, body, labels }),
     })
 
     if (response.status === 401) {
@@ -80,9 +83,8 @@ export async function createIssue(
 }
 
 export async function addReaction(
-  pat: string,
   issueNumber: number,
-  reaction: '+1'
+  reaction: '+1' = '+1'
 ) {
   try {
     const response = await fetch(
@@ -90,7 +92,7 @@ export async function addReaction(
       {
         method: 'POST',
         headers: {
-          ...getHeaders(pat),
+          ...getHeaders(),
           'Accept': 'application/vnd.github.squirrel-girl-preview+json',
         },
         body: JSON.stringify({ content: reaction }),
@@ -112,11 +114,11 @@ export async function addReaction(
   }
 }
 
-export async function getDebateLogs(pat: string | null) {
+export async function getDebateLogs() {
   try {
     const response = await fetch(
       `${API_BASE}/repos/${REPO}/contents/debate-logs`,
-      { headers: getHeaders(pat) }
+      { headers: getHeaders() }
     )
 
     if (response.status === 404) {
@@ -139,13 +141,12 @@ export async function getDebateLogs(pat: string | null) {
 }
 
 export async function getDebateLogContent(
-  pat: string | null,
   filename: string
 ) {
   try {
     const response = await fetch(
       `${API_BASE}/repos/${REPO}/contents/debate-logs/${filename}`,
-      { headers: getHeaders(pat) }
+      { headers: getHeaders() }
     )
 
     if (response.status === 404) {
@@ -168,13 +169,12 @@ export async function getDebateLogContent(
 }
 
 export async function getFileContent(
-  pat: string | null,
   filepath: string
 ) {
   try {
     const response = await fetch(
       `${API_BASE}/repos/${REPO}/contents/${filepath}`,
-      { headers: getHeaders(pat) }
+      { headers: getHeaders() }
     )
 
     if (response.status === 404) {
