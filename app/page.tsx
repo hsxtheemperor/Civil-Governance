@@ -1,201 +1,237 @@
-'use client'
-
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { getIssues, getDebateLogs, getCoCSuggestions, getFileContent } from '@/lib/github'
-import Header from '@/components/Header'
-import Footer from '@/components/Footer'
+import { getIssues, getCoCSuggestions, getDebateLogs, getFileContent, GitHubIssue, GitHubFile } from '@/lib/github'
 import { MarkdownRenderer } from '@/components/MarkdownRenderer'
+import SuggestionCard from '@/components/SuggestionCard'
 
-export default function HomePage() {
-  const [issues, setIssues] = useState<any[]>([])
-  const [debateLogs, setDebateLogs] = useState<Set<number>>(new Set())
-  const [cocSuggestions, setCocSuggestions] = useState<any[]>([])
-  const [coc, setCoC] = useState<string>('')
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+// Revalidate the CoC content at most once per hour to avoid GitHub API rate limits.
+// If you need real-time updates, remove this and rely on on-demand revalidation instead.
+export const revalidate = 3600
 
-  useEffect(() => {
-    loadData()
-  }, [])
+export default async function HomePage() {
+  // Fetch all data in parallel; failures are handled gracefully via allSettled
+  const [issuesResult, suggestionsResult, debatesResult, cocResult] =
+    await Promise.allSettled([
+      getIssues(),
+      getCoCSuggestions(),
+      getDebateLogs(),
+      getFileContent('code-of-conduct.md'),
+    ])
 
-  async function loadData() {
-    try {
-      setLoading(true)
-      const [issuesData, logsData, suggestionsData, cocData] = await Promise.all([
-        getIssues(),
-        getDebateLogs(),
-        getCoCSuggestions(),
-        getFileContent('code-of-conduct.md')
-      ])
-      
-      setIssues(issuesData)
-      setCocSuggestions(suggestionsData)
-      if (cocData) setCoC(cocData)
-      
-      // Extract issue numbers from debate log filenames
-      const resolvedIssues = new Set(
-        logsData
-          .map(f => f.name)
-          .filter(name => name.match(/^issue-\d+/))
-          .map(name => parseInt(name.match(/\d+/)?.[0] || '0'))
-      )
-      setDebateLogs(resolvedIssues)
-      setError(null)
-    } catch (err) {
-      console.error('[CJP] Error loading data:', err)
-      setError('Failed to load data. Please check GitHub configuration.')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const allIssues: GitHubIssue[] =
+    issuesResult.status === 'fulfilled' ? issuesResult.value : []
+  const allSuggestions: GitHubIssue[] =
+    suggestionsResult.status === 'fulfilled' ? suggestionsResult.value : []
+  const debateLogs: GitHubFile[] =
+    debatesResult.status === 'fulfilled' ? (debatesResult.value as GitHubFile[]) : []
+  const cocContent: string | null =
+    cocResult.status === 'fulfilled' ? cocResult.value : null
 
-  const acceptedIssues = issues.filter(i => i.labels.some(l => l.name === 'accepted'))
-  const resolvedIssues = acceptedIssues.filter(i => debateLogs.has(i.number))
-  const openVoting = acceptedIssues.filter(i => !debateLogs.has(i.number))
-  const pendingModeration = issues.filter(i => !i.labels.some(l => l.name === 'accepted'))
+  // Derive issue categories from labels
+  const pendingIssues = allIssues.filter(i =>
+    i.labels.some(l => l.name === 'pending')
+  )
+  const acceptedIssues = allIssues.filter(i =>
+    i.labels.some(l => l.name === 'accepted')
+  )
+  const resolvedIssues = acceptedIssues.filter(i =>
+    debateLogs.some((d: GitHubFile) => d.name === `issue-${i.number}.md`)
+  )
+
+  // Top 3 issues by vote count for the homepage highlight
+  const topIssues = [...acceptedIssues]
+    .sort((a, b) => (b.reactions['+1'] ?? 0) - (a.reactions['+1'] ?? 0))
+    .slice(0, 3)
+
+  const stats = [
+    { label: 'Total Issues',   value: allIssues.length,                           color: 'text-white' },
+    { label: 'Pending Review', value: pendingIssues.length,                        color: 'text-yellow-400' },
+    { label: 'Open & Voting',  value: acceptedIssues.length - resolvedIssues.length, color: 'text-amber-400' },
+    { label: 'Resolved',       value: resolvedIssues.length,                       color: 'text-green-400' },
+  ]
 
   return (
     <>
-      <Header />
-      <main className="flex-1 max-w-6xl mx-auto px-4 py-12">
-        {/* Hero Section */}
-        <section className="mb-16">
-          <h1 className="text-5xl font-bold mb-4 text-balance">CJP Community Platform</h1>
-          <p className="text-xl text-gray-300 mb-8">
-            By the people. For the people. Documented.
-          </p>
-          <p className="text-gray-400 mb-8 max-w-2xl">
-            Report problems affecting our community. Moderators review and approve submissions. 
-            The community votes anonymously to prioritize issues. Debates are documented and published.
-          </p>
-          
-          {/* Action Buttons */}
-          <div className="flex gap-4 flex-wrap mb-8">
-            <Link
-              href="/problems"
-              className="px-6 py-3 bg-amber-500 text-slate-900 rounded-lg font-semibold hover:bg-amber-400 transition"
-            >
-              Report a Problem
-            </Link>
-            <Link
-              href="/issues"
-              className="px-6 py-3 border border-amber-500 text-amber-500 rounded-lg font-semibold hover:bg-amber-500 hover:text-slate-900 transition"
-            >
-              View All Issues
-            </Link>
-            <Link
-              href="/coc-suggestions"
-              className="px-6 py-3 border border-blue-500 text-blue-400 rounded-lg font-semibold hover:bg-blue-500 hover:text-slate-900 transition"
-            >
-              Suggest CoC Changes
-            </Link>
-          </div>
+      {/* Markdown prose styles — scoped to .markdown, keeps Tailwind clean */}
+      <style>{`
+        .markdown h1 { font-size: 1.5rem; font-weight: 700; color: #fff; margin-top: 1.5rem; margin-bottom: 0.5rem; }
+        .markdown h2 { font-size: 1.25rem; font-weight: 700; color: #fff; margin-top: 2rem; margin-bottom: 0.5rem; }
+        .markdown h3 { font-size: 1rem; font-weight: 600; color: #fbbf24; margin-top: 1.25rem; margin-bottom: 0.25rem; }
+        .markdown p  { color: #d1d5db; line-height: 1.75; margin-bottom: 0.75rem; }
+        .markdown hr { border-color: #334155; margin: 1.5rem 0; }
+        .markdown em { color: #94a3b8; font-style: italic; }
+        .markdown strong { color: #f8fafc; font-weight: 600; }
+        .markdown ul { list-style: disc; padding-left: 1.5rem; color: #d1d5db; margin-bottom: 0.75rem; }
+        .markdown li { margin-bottom: 0.25rem; line-height: 1.6; }
+        .markdown a  { color: #f59e0b; text-decoration: underline; }
+        .markdown a:hover { color: #fbbf24; }
+        .markdown code { background: #1e293b; color: #fbbf24; padding: 0.1rem 0.4rem; border-radius: 4px; font-size: 0.875rem; }
+        .markdown blockquote { border-left: 3px solid #f59e0b; padding-left: 1rem; color: #94a3b8; margin: 1rem 0; font-style: italic; }
+      `}</style>
 
-          {/* Code of Conduct Preview */}
-          {coc && (
-            <div className="mb-12 bg-slate-800 border border-slate-700 rounded-lg p-8">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold">Code of Conduct</h2>
-                <Link href="/coc-suggestions" className="text-blue-400 hover:text-blue-300 text-sm">
-                  Suggest Changes →
-                </Link>
-              </div>
-              <div className="markdown text-sm text-gray-300 max-h-64 overflow-hidden relative">
-                <MarkdownRenderer content={coc} />
-                <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-slate-800 to-transparent pointer-events-none" />
-              </div>
-            </div>
-          )}
-        </section>
+      <main className="min-h-screen bg-slate-950 text-white">
 
-        {/* Stats */}
-        <section className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-16">
-          <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
-            <div className="text-4xl font-bold text-amber-500">{issues.length}</div>
-            <p className="text-gray-300 mt-2">Total Issues</p>
-          </div>
-          <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
-            <div className="text-4xl font-bold text-yellow-400">{pendingModeration.length}</div>
-            <p className="text-gray-300 mt-2">Pending Review</p>
-          </div>
-          <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
-            <div className="text-4xl font-bold text-orange-400">{openVoting.length}</div>
-            <p className="text-gray-300 mt-2">Open & Voting</p>
-          </div>
-          <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
-            <div className="text-4xl font-bold text-green-400">{resolvedIssues.length}</div>
-            <p className="text-gray-300 mt-2">Resolved</p>
-          </div>
-          <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
-            <div className="text-4xl font-bold text-blue-400">{cocSuggestions.length}</div>
-            <p className="text-gray-300 mt-2">CoC Suggestions</p>
-          </div>
-        </section>
-
-        {error && (
-          <div className="bg-red-900 border border-red-700 rounded-lg p-4 text-red-100 mb-8">
-            {error}
-          </div>
-        )}
-
-        {/* Recent Issues */}
-        <section>
-          <h2 className="text-3xl font-bold mb-6">Recent Issues</h2>
-          {loading ? (
-            <div className="text-center py-12">
-              <p className="text-gray-400">Loading issues...</p>
-            </div>
-          ) : issues.length === 0 ? (
-            <div className="text-center py-12 bg-slate-800 rounded-lg">
-              <p className="text-gray-400 mb-4">No issues yet. Be the first to report a problem!</p>
+        {/* ── Hero ─────────────────────────────────────────────────── */}
+        <section className="max-w-6xl mx-auto px-4 pt-16 pb-12">
+          <div className="text-center mb-12">
+            <span className="inline-block px-3 py-1 bg-amber-500/10 border border-amber-500/30 rounded-full text-amber-400 text-sm font-medium mb-6 tracking-wide">
+              Transparent · Open · Auditable
+            </span>
+            <h1 className="text-5xl font-bold text-white mb-4 leading-tight">
+              By the people.{' '}
+              <span className="text-amber-400">For the people.</span>
+              <br />
+              Documented.
+            </h1>
+            <p className="text-gray-400 text-lg max-w-2xl mx-auto mb-8">
+              A civic governance platform where community members report problems,
+              vote on solutions, and engage in documented debates. All data is
+              public, immutable, and auditable.
+            </p>
+            <div className="flex gap-3 justify-center flex-wrap">
               <Link
                 href="/problems"
-                className="inline-block px-6 py-2 bg-amber-500 text-slate-900 rounded-lg font-semibold hover:bg-amber-400 transition"
+                className="px-6 py-3 bg-amber-500 text-slate-900 rounded-lg font-semibold hover:bg-amber-400 transition"
               >
-                Report First Problem
+                Report a Problem
+              </Link>
+              <Link
+                href="/issues"
+                className="px-6 py-3 bg-slate-800 text-white rounded-lg font-semibold hover:bg-slate-700 transition border border-slate-700"
+              >
+                Browse Issues
+              </Link>
+              <Link
+                href="/coc-suggestions"
+                className="px-6 py-3 bg-slate-800 text-white rounded-lg font-semibold hover:bg-slate-700 transition border border-slate-700"
+              >
+                Suggest CoC Change
               </Link>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {issues.slice(0, 8).map((issue) => {
-                const isResolved = debateLogs.has(issue.number)
-                const isAccepted = issue.labels.some(l => l.name === 'accepted')
-                const isPending = !isAccepted
-                
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {stats.map(({ label, value, color }) => (
+              <div
+                key={label}
+                className="bg-slate-800 border border-slate-700 rounded-lg p-6 text-center"
+              >
+                <div className={`text-3xl font-bold mb-1 ${color}`}>{value}</div>
+                <div className="text-gray-400 text-sm">{label}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Top Issues ───────────────────────────────────────────── */}
+        {topIssues.length > 0 && (
+          <section className="max-w-6xl mx-auto px-4 pb-14">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-white">🔥 Top Issues</h2>
+              <Link
+                href="/issues"
+                className="text-amber-500 hover:text-amber-400 text-sm font-semibold transition"
+              >
+                View All →
+              </Link>
+            </div>
+            <div className="grid gap-4 md:grid-cols-3">
+              {topIssues.map(issue => {
+                const isResolved = debateLogs.some(
+                  (d: GitHubFile) => d.name === `issue-${issue.number}.md`
+                )
+                const isPending = issue.labels.some(l => l.name === 'pending')
                 return (
-                  <Link
+                  <SuggestionCard
                     key={issue.id}
-                    href={`/issues/${issue.number}`}
-                    className="bg-slate-800 rounded-lg p-6 border border-slate-700 hover:border-amber-500 transition group"
-                  >
-                    <div className="flex items-start justify-between gap-4 mb-3">
-                      <h3 className="text-lg font-semibold group-hover:text-amber-400 transition line-clamp-2">
-                        #{issue.number}: {issue.title}
-                      </h3>
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium whitespace-nowrap ${
-                        isResolved
-                          ? 'bg-green-900 text-green-100'
-                          : isPending
-                          ? 'bg-yellow-900 text-yellow-100'
-                          : 'bg-orange-900 text-orange-100'
-                      }`}>
-                        {isResolved ? '✓ Resolved' : isPending ? '⏳ Pending' : '🗳️ Voting'}
-                      </span>
-                    </div>
-                    <p className="text-gray-300 text-sm mb-4 line-clamp-2">{issue.body}</p>
-                    <div className="flex items-center justify-between text-sm text-gray-400">
-                      <span>👍 {issue.reactions?.['+1'] || 0} votes</span>
-                      <span>{new Date(issue.created_at).toLocaleDateString()}</span>
-                    </div>
-                  </Link>
+                    issue={issue}
+                    isResolved={isResolved}
+                    isPending={isPending}
+                  />
                 )
               })}
             </div>
+          </section>
+        )}
+
+        {/* ── How It Works ─────────────────────────────────────────── */}
+        <section className="max-w-6xl mx-auto px-4 pb-14">
+          <h2 className="text-2xl font-bold text-white mb-6">⚙️ How It Works</h2>
+          <div className="grid md:grid-cols-4 gap-4">
+            {[
+              { step: '01', title: 'Report',   desc: 'Submit a problem. It is labeled pending and awaits moderator review.' },
+              { step: '02', title: 'Review',   desc: 'Moderators accept or reject with a documented reason — all public.' },
+              { step: '03', title: 'Vote',     desc: 'Community votes on accepted issues. Top issues rise to the surface.' },
+              { step: '04', title: 'Resolve',  desc: 'A debate log is published, the issue is closed, and the record stands.' },
+            ].map(({ step, title, desc }) => (
+              <div
+                key={step}
+                className="bg-slate-800 border border-slate-700 rounded-lg p-6"
+              >
+                <div className="text-amber-500 font-mono text-sm font-bold mb-2">{step}</div>
+                <h3 className="text-white font-bold text-lg mb-2">{title}</h3>
+                <p className="text-gray-400 text-sm leading-relaxed">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Code of Conduct ──────────────────────────────────────── */}
+        <section className="max-w-6xl mx-auto px-4 pb-16">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-white">📜 Code of Conduct</h2>
+            <div className="flex items-center gap-4">
+              {allSuggestions.length > 0 && (
+                <span className="text-gray-500 text-sm">
+                  {allSuggestions.length} active suggestion
+                  {allSuggestions.length !== 1 ? 's' : ''} from the community
+                </span>
+              )}
+              <Link
+                href="/coc-suggestions"
+                className="text-amber-500 hover:text-amber-400 text-sm font-semibold transition"
+              >
+                Suggest a Change →
+              </Link>
+            </div>
+          </div>
+
+          <div className="bg-slate-800 border border-slate-700 rounded-lg p-8">
+            {cocContent ? (
+              <MarkdownRenderer content={cocContent} />
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-gray-400 mb-4">
+                  The Code of Conduct could not be loaded right now.
+                </p>
+                <Link
+                  href="/coc-suggestions"
+                  className="text-amber-500 hover:text-amber-400 text-sm font-semibold underline transition"
+                >
+                  View community suggestions instead →
+                </Link>
+              </div>
+            )}
+          </div>
+
+          {/* Debate logs callout */}
+          {debateLogs.length > 0 && (
+            <div className="mt-4 flex items-center justify-between bg-slate-800/50 border border-slate-700 rounded-lg px-6 py-4">
+              <p className="text-gray-400 text-sm">
+                <span className="text-white font-semibold">{debateLogs.length}</span>{' '}
+                resolved debate{debateLogs.length !== 1 ? 's' : ''} on record — all publicly auditable.
+              </p>
+              <Link
+                href="/debate-logs"
+                className="text-amber-500 hover:text-amber-400 text-sm font-semibold transition whitespace-nowrap ml-4"
+              >
+                View Debates →
+              </Link>
+            </div>
           )}
         </section>
+
       </main>
-      <Footer />
     </>
   )
 }
