@@ -160,7 +160,7 @@ export async function getDebateLogContent(
     if (!response.ok) throw new Error('Failed to fetch debate log')
 
     const data = await response.json() as GitHubContent
-    return Buffer.from(data.content, data.encoding).toString('utf-8')
+    return Buffer.from(data.content, (data.encoding as BufferEncoding) || 'base64').toString('utf-8')
   } catch (error) {
     console.error('Error fetching debate log content:', error)
     throw error
@@ -189,7 +189,7 @@ export async function getFileContent(
     if (!response.ok) throw new Error('Failed to fetch file')
 
     const data = await response.json() as GitHubContent
-    return Buffer.from(data.content, data.encoding).toString('utf-8')
+    return Buffer.from(data.content, (data.encoding as BufferEncoding) || 'base64').toString('utf-8')
   } catch (error) {
     console.error('Error fetching file:', error)
     throw error
