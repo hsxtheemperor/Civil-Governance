@@ -1,3 +1,8 @@
+// This module talks to the GitHub API using a backend-only token. The
+// `server-only` import guarantees it can never be bundled into client code,
+// which would otherwise leak GITHUB_PAT to the browser.
+import 'server-only'
+
 const REPO = 'hsxtheemperor/Civil-Governance'
 const API_BASE = 'https://api.github.com'
 const PAT = process.env.GITHUB_PAT
