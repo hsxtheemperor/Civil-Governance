@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import Header from '@/components/Header'
+import HeaderClient from '@/components/HeaderClient'
 import Footer from '@/components/Footer'
 import { getDebateLogs } from '@/lib/github'
 
@@ -46,7 +46,7 @@ export default function DebateLogsPage() {
 
   return (
     <>
-      <Header />
+      <HeaderClient />
       <main className="flex-1 max-w-4xl mx-auto px-4 py-12">
         <h1 className="text-4xl font-bold mb-2">Debate Logs</h1>
         <p className="text-gray-400 mb-8">

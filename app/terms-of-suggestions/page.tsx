@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import Header from '@/components/Header'
+import HeaderClient from '@/components/HeaderClient'
 import Footer from '@/components/Footer'
 import { MarkdownRenderer } from '@/components/MarkdownRenderer'
 import { getFileContent } from '@/lib/github'
@@ -35,7 +35,7 @@ export default function TermsOfSuggestionsPage() {
 
   return (
     <>
-      <Header />
+      <HeaderClient />
       <main className="flex-1 max-w-4xl mx-auto px-4 py-12">
         <div className="mb-8">
           <Link href="/" className="text-blue-400 hover:text-blue-300 mb-4 inline-block">

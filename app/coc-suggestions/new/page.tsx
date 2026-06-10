@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import Header from '@/components/Header'
+import HeaderClient from '@/components/HeaderClient'
 import Footer from '@/components/Footer'
 import { createCoCsuggestion, getFileContent } from '@/lib/github'
 import { validateIssueTitle, validateIssueBody } from '@/lib/validation'
@@ -66,7 +66,7 @@ export default function NewCoCsuggestionPage() {
 
   return (
     <>
-      <Header />
+      <HeaderClient />
       <main className="flex-1 max-w-4xl mx-auto px-4 py-12">
         <div className="mb-8">
           <Link href="/coc-suggestions" className="text-blue-400 hover:text-blue-300 mb-4 inline-block">

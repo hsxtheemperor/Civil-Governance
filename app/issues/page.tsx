@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { getIssues, getDebateLogs } from '@/lib/github'
-import Header from '@/components/Header'
+import HeaderClient from '@/components/HeaderClient'
 import Footer from '@/components/Footer'
 import SuggestionCard from '@/components/SuggestionCard'
 
@@ -73,7 +73,7 @@ export default function IssuesPage() {
 
   return (
     <>
-      <Header />
+      <HeaderClient />
       <main className="flex-1 max-w-6xl mx-auto px-4 py-12">
         <div className="flex items-start justify-between gap-8 mb-8">
           <div>
