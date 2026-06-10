@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
-import { getDebateLogs } from '@/lib/github'
+import { fetchDebateLogs } from '@/app/actions'
 
 export default function DebateLogsPage() {
   const [logs, setLogs] = useState<any[]>([])
@@ -18,14 +18,16 @@ export default function DebateLogsPage() {
   async function loadLogs() {
     try {
       setLoading(true)
-      const data = await getDebateLogs()
-      setLogs(data.sort((a, b) => b.name.localeCompare(a.name)))
+      const result = await fetchDebateLogs()
+      if (!result.ok) {
+        setError('Failed to load debate logs')
+        return
+      }
+      setLogs([...result.data].sort((a, b) => b.name.localeCompare(a.name)))
       setError(null)
     } catch (err: any) {
       console.error('[v0] Error loading debate logs:', err)
-      if (!err.message.includes('404')) {
-        setError('Failed to load debate logs')
-      }
+      setError('Failed to load debate logs')
     } finally {
       setLoading(false)
     }

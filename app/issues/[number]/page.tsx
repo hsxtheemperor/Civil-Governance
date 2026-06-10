@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { getIssues, addReaction, getDebateLogContent, getDebateLogs } from '@/lib/github'
+import { fetchIssues, voteOnIssue, fetchDebateLogContent, fetchDebateLogs } from '@/app/actions'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import { MarkdownRenderer } from '@/components/MarkdownRenderer'
@@ -24,10 +24,17 @@ export default function IssuePage() {
   async function loadIssue() {
     try {
       setLoading(true)
-      const [issuesData, logsData] = await Promise.all([
-        getIssues(),
-        getDebateLogs()
+      const [issuesResult, logsResult] = await Promise.all([
+        fetchIssues(),
+        fetchDebateLogs()
       ])
+
+      if (!issuesResult.ok) {
+        throw new Error(issuesResult.error)
+      }
+
+      const issuesData = issuesResult.data
+      const logsData = logsResult.ok ? logsResult.data : []
 
       const foundIssue = issuesData.find(i => i.number === issueNumber)
       if (!foundIssue) throw new Error('Issue not found')
@@ -37,14 +44,14 @@ export default function IssuePage() {
       // Check if there's a debate log for this issue
       const debateLog = logsData.find(f => f.name === `issue-${issueNumber}.md`)
       if (debateLog) {
-        const content = await getDebateLogContent(`issue-${issueNumber}.md`)
-        setDebateContent(content)
+        const contentResult = await fetchDebateLogContent(`issue-${issueNumber}.md`)
+        if (contentResult.ok) setDebateContent(contentResult.data)
       }
 
       setError(null)
     } catch (err) {
       console.error('[v0] Error loading issue:', err)
-      setError('Failed to load issue. Check GitHub PAT configuration.')
+      setError(err instanceof Error ? err.message : 'Failed to load issue.')
     } finally {
       setLoading(false)
     }
@@ -55,7 +62,11 @@ export default function IssuePage() {
 
     try {
       setVoting(true)
-      await addReaction(issueNumber)
+      const result = await voteOnIssue(issueNumber)
+      if (!result.ok) {
+        setError(result.error)
+        return
+      }
       // Update local state
       setIssue({
         ...issue,

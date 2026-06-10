@@ -3,6 +3,22 @@ const MAX_TITLE_LENGTH = 200
 const MAX_BODY_LENGTH = 5000
 const MAX_REASON_LENGTH = 1000
 
+// Patterns that indicate an attempt to inject executable markup. We reject
+// rather than silently strip so the user understands why their input failed.
+const XSS_PATTERNS: RegExp[] = [
+  /<\s*script/i,
+  /<\s*\/\s*script/i,
+  /<\s*iframe/i,
+  /<\s*img[^>]*on\w+\s*=/i,
+  /javascript\s*:/i,
+  /data\s*:\s*text\/html/i,
+  /on\w+\s*=\s*["']?[^"']*["']?/i, // inline event handlers e.g. onclick=
+]
+
+export function containsXss(input: string): boolean {
+  return XSS_PATTERNS.some((pattern) => pattern.test(input))
+}
+
 export function validateIssueTitle(title: string): { valid: boolean; error?: string } {
   if (!title || title.trim().length === 0) {
     return { valid: false, error: 'Title is required' }
@@ -12,6 +28,9 @@ export function validateIssueTitle(title: string): { valid: boolean; error?: str
   }
   if (title.length < 10) {
     return { valid: false, error: 'Title must be at least 10 characters' }
+  }
+  if (containsXss(title)) {
+    return { valid: false, error: 'Title contains disallowed markup or scripts' }
   }
   return { valid: true }
 }
@@ -25,6 +44,9 @@ export function validateIssueBody(body: string): { valid: boolean; error?: strin
   }
   if (body.length < 20) {
     return { valid: false, error: 'Description must be at least 20 characters' }
+  }
+  if (containsXss(body)) {
+    return { valid: false, error: 'Description contains disallowed markup or scripts' }
   }
   return { valid: true }
 }

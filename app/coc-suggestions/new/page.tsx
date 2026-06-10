@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
-import { createCoCsuggestion, getFileContent } from '@/lib/github'
+import { submitCoCSuggestion, fetchCoC } from '@/app/actions'
 import { validateIssueTitle, validateIssueBody } from '@/lib/validation'
 
 export default function NewCoCsuggestionPage() {
@@ -19,9 +19,9 @@ export default function NewCoCsuggestionPage() {
 
   const handleLoadCoC = async () => {
     try {
-      const content = await getFileContent('code-of-conduct.md')
-      if (content) {
-        setCocContent(content)
+      const result = await fetchCoC()
+      if (result.ok && result.data) {
+        setCocContent(result.data)
       }
     } catch (err) {
       console.error('[CJP] Error loading CoC:', err)
@@ -52,9 +52,11 @@ export default function NewCoCsuggestionPage() {
 
     try {
       setLoading(true)
-      const fullBody = `## Affected Section\n${affectedSection}\n\n## Suggested Change\n${body}`
-      
-      await createCoCsuggestion(title, fullBody, '')
+      const result = await submitCoCSuggestion(title, affectedSection, body)
+      if (!result.ok) {
+        setError(result.error)
+        return
+      }
       router.push('/coc-suggestions?success=true')
     } catch (err) {
       console.error('[CJP] Error creating suggestion:', err)
