@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
-import Header from '@/components/Header'
+import HeaderClient from '@/components/HeaderClient'
 import Footer from '@/components/Footer'
 import { getIssues, addReaction } from '@/lib/github'
 import { MarkdownRenderer } from '@/components/MarkdownRenderer'
@@ -61,7 +61,7 @@ export default function CoCSuggestionDetailPage() {
   if (loading) {
     return (
       <>
-        <Header />
+        <HeaderClient />
         <main className="flex-1 max-w-4xl mx-auto px-4 py-12">
           <p className="text-gray-400">Loading suggestion...</p>
         </main>
@@ -73,7 +73,7 @@ export default function CoCSuggestionDetailPage() {
   if (error || !suggestion) {
     return (
       <>
-        <Header />
+        <HeaderClient />
         <main className="flex-1 max-w-4xl mx-auto px-4 py-12">
           <div className="bg-red-900 border border-red-700 rounded-lg p-4 text-red-100 mb-4">
             {error || 'Suggestion not found'}
@@ -94,7 +94,7 @@ export default function CoCSuggestionDetailPage() {
 
   return (
     <>
-      <Header />
+      <HeaderClient />
       <main className="flex-1 max-w-4xl mx-auto px-4 py-12">
         <Link href="/coc-suggestions" className="text-blue-400 hover:text-blue-300 mb-4 inline-block">
           ← Back to Suggestions

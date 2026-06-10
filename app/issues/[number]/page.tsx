@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { getIssues, addReaction, getDebateLogContent, getDebateLogs } from '@/lib/github'
-import Header from '@/components/Header'
+import HeaderClient from '@/components/HeaderClient'
 import Footer from '@/components/Footer'
 import { MarkdownRenderer } from '@/components/MarkdownRenderer'
 
@@ -75,7 +75,7 @@ export default function IssuePage() {
   if (loading) {
     return (
       <>
-        <Header />
+        <HeaderClient />
         <main className="flex-1 max-w-4xl mx-auto px-4 py-12">
           <div className="text-center py-12">
             <p className="text-gray-400">Loading issue...</p>
@@ -89,7 +89,7 @@ export default function IssuePage() {
   if (!issue) {
     return (
       <>
-        <Header />
+        <HeaderClient />
         <main className="flex-1 max-w-4xl mx-auto px-4 py-12">
           <div className="bg-red-900 border border-red-700 rounded-lg p-6 text-red-100">
             {error || 'Issue not found'}
@@ -105,7 +105,7 @@ export default function IssuePage() {
 
   return (
     <>
-      <Header />
+      <HeaderClient />
       <main className="flex-1 max-w-4xl mx-auto px-4 py-12">
         {error && (
           <div className="bg-red-900 border border-red-700 rounded-lg p-4 text-red-100 mb-8">

@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createIssue } from '@/lib/github'
-import Header from '@/components/Header'
+import { createRequest } from '@/lib/github'
+import HeaderClient from '@/components/HeaderClient'
 import Footer from '@/components/Footer'
 
 export default function ProblemsPage() {
@@ -26,10 +26,10 @@ export default function ProblemsPage() {
       setLoading(true)
       setError(null)
 
-      await createIssue(
+      // Create a request (goes to requests folder, awaiting admin review)
+      await createRequest(
         title,
-        description,
-        ['pending'] // Automatically add pending label
+        description
       )
 
       setSuccess(true)
@@ -37,11 +37,11 @@ export default function ProblemsPage() {
       setDescription('')
 
       setTimeout(() => {
-        router.push('/issues')
+        router.push('/')
       }, 2000)
     } catch (err) {
-      console.error('[v0] Error submitting problem:', err)
-      setError('Failed to submit problem. Check GitHub PAT configuration.')
+      console.error('[CJP] Error submitting request:', err)
+      setError('Failed to submit request. Check GitHub PAT configuration.')
     } finally {
       setLoading(false)
     }
@@ -49,17 +49,17 @@ export default function ProblemsPage() {
 
   return (
     <>
-      <Header />
+      <HeaderClient />
       <main className="flex-1 max-w-4xl mx-auto px-4 py-12">
         <h1 className="text-4xl font-bold mb-2">Report a Problem</h1>
         <p className="text-gray-400 mb-8">
-          Describe an issue affecting our community. Your submission will be reviewed by moderators.
+          Describe an issue affecting our community. Your submission will be reviewed by moderators before appearing as an issue.
         </p>
 
         <form onSubmit={handleSubmit} className="bg-slate-800 rounded-lg border border-slate-700 p-8">
           {success && (
             <div className="mb-6 bg-green-900 border border-green-700 rounded-lg p-4 text-green-100">
-              ✓ Problem submitted successfully! Redirecting to issues...
+              ✓ Your problem has been submitted for review! Redirecting...
             </div>
           )}
 
