@@ -92,18 +92,28 @@ export default function HomePage() {
             </Link>
           </div>
 
-          {/* Code of Conduct Preview */}
+          {/* Code of Conduct Display */}
           {coc && (
-            <div className="mb-12 bg-slate-800 border border-slate-700 rounded-lg p-8">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-2xl font-bold">Code of Conduct</h2>
-                <Link href="/coc-suggestions" className="text-blue-400 hover:text-blue-300 text-sm">
-                  Suggest Changes →
-                </Link>
+            <div className="mb-12 bg-gradient-to-r from-blue-900 to-slate-800 border border-blue-700 rounded-lg p-8">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+                <div>
+                  <h2 className="text-3xl font-bold mb-2">Code of Conduct</h2>
+                  <p className="text-blue-200 text-sm">Our shared values and community guidelines</p>
+                </div>
+                <div className="flex gap-3">
+                  <Link href="/coc-suggestions" className="px-4 py-2 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 transition text-sm">
+                    Suggest Changes
+                  </Link>
+                  <Link href="/terms-of-suggestions" className="px-4 py-2 border border-blue-400 text-blue-300 rounded-lg font-semibold hover:bg-blue-400 hover:text-slate-900 transition text-sm">
+                    Terms
+                  </Link>
+                </div>
               </div>
-              <div className="markdown text-sm text-gray-300 max-h-64 overflow-hidden relative">
+              <div className="markdown bg-slate-900 bg-opacity-50 rounded p-6 text-sm text-gray-300 max-h-96 overflow-y-auto border border-slate-700">
                 <MarkdownRenderer content={coc} />
-                <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-slate-800 to-transparent pointer-events-none" />
+              </div>
+              <div className="mt-4 text-sm text-blue-200">
+                <p>💡 See something that needs improvement? <Link href="/coc-suggestions/new" className="underline hover:text-blue-100">Submit a suggestion</Link></p>
               </div>
             </div>
           )}
