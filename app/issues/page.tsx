@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { getIssues, getDebateLogs } from '@/lib/github'
+import { fetchIssues, fetchDebateLogs } from '@/app/actions'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 import SuggestionCard from '@/components/SuggestionCard'
@@ -21,10 +21,18 @@ export default function IssuesPage() {
   async function loadIssues() {
     try {
       setLoading(true)
-      const [issuesData, logsData] = await Promise.all([
-        getIssues(),
-        getDebateLogs()
+      const [issuesResult, logsResult] = await Promise.all([
+        fetchIssues(),
+        fetchDebateLogs()
       ])
+
+      if (!issuesResult.ok) {
+        setError(issuesResult.error)
+        return
+      }
+
+      const issuesData = issuesResult.data
+      const logsData = logsResult.ok ? logsResult.data : []
 
       setIssues(issuesData)
 
@@ -39,7 +47,7 @@ export default function IssuesPage() {
       setError(null)
     } catch (err) {
       console.error('[v0] Error loading issues:', err)
-      setError('Failed to load issues. Check GitHub PAT configuration.')
+      setError('Failed to load issues. Please try again later.')
     } finally {
       setLoading(false)
     }

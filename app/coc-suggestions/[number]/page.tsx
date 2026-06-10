@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
-import { getIssues, addReaction } from '@/lib/github'
+import { fetchCoCSuggestions, voteOnIssue } from '@/app/actions'
 import { MarkdownRenderer } from '@/components/MarkdownRenderer'
 
 export default function CoCSuggestionDetailPage() {
@@ -24,11 +24,13 @@ export default function CoCSuggestionDetailPage() {
   async function loadSuggestion() {
     try {
       setLoading(true)
-      const suggestions = await getIssues()
-      const found = suggestions.find(s => 
-        s.number === number && s.labels.some(l => l.name === 'coc-suggestion')
-      )
-      
+      const result = await fetchCoCSuggestions()
+      if (!result.ok) {
+        setError(result.error)
+        return
+      }
+      const found = result.data.find(s => s.number === number)
+
       if (!found) {
         setError('Suggestion not found')
         return
@@ -47,7 +49,11 @@ export default function CoCSuggestionDetailPage() {
   const handleVote = async () => {
     try {
       setVoting(true)
-      await addReaction(number)
+      const result = await voteOnIssue(number)
+      if (!result.ok) {
+        setError(result.error)
+        return
+      }
       // Reload to get updated vote count
       await loadSuggestion()
     } catch (err) {

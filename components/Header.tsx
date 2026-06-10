@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { Home, FileWarning } from 'lucide-react'
 
 export default function Header() {
   return (
@@ -20,8 +21,9 @@ export default function Header() {
         <nav className="flex items-center gap-2">
           <Link
             href="/"
-            className="px-4 py-2 text-gray-300 hover:text-white transition text-sm"
+            className="flex items-center gap-1.5 px-4 py-2 text-gray-300 hover:text-white transition text-sm"
           >
+            <Home className="w-4 h-4" aria-hidden="true" />
             Home
           </Link>
           <Link
@@ -44,8 +46,9 @@ export default function Header() {
           </Link>
           <Link
             href="/problems"
-            className="px-4 py-2 bg-amber-500 text-slate-900 rounded-lg font-semibold hover:bg-amber-400 transition text-sm"
+            className="flex items-center gap-1.5 px-4 py-2 bg-amber-500 text-slate-900 rounded-lg font-semibold hover:bg-amber-400 transition text-sm"
           >
+            <FileWarning className="w-4 h-4" aria-hidden="true" />
             Report
           </Link>
         </nav>

@@ -14,7 +14,7 @@ export default async function HomePage() {
       getIssues(),
       getCoCSuggestions(),
       getDebateLogs(),
-      getFileContent('code-of-conduct.md'),
+      getFileContent('CODE-OF-CONDUCT.md'),
     ])
 
   const allIssues: GitHubIssue[] =
@@ -154,7 +154,7 @@ export default async function HomePage() {
           </section>
         )}
 
-        {/* ── How It Works ─────────────────────────────────────────── */}
+        {/* ── How It Works ───────────���─────────────────────────────── */}
         <section className="max-w-6xl mx-auto px-4 pb-14">
           <h2 className="text-2xl font-bold text-white mb-6">⚙️ How It Works</h2>
           <div className="grid md:grid-cols-4 gap-4">

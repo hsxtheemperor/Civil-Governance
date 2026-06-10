@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { createIssue } from '@/lib/github'
+import { submitProblem } from '@/app/actions'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
 
@@ -26,11 +26,12 @@ export default function ProblemsPage() {
       setLoading(true)
       setError(null)
 
-      await createIssue(
-        title,
-        description,
-        ['pending'] // Automatically add pending label
-      )
+      const result = await submitProblem(title, description)
+
+      if (!result.ok) {
+        setError(result.error)
+        return
+      }
 
       setSuccess(true)
       setTitle('')
@@ -41,7 +42,7 @@ export default function ProblemsPage() {
       }, 2000)
     } catch (err) {
       console.error('[v0] Error submitting problem:', err)
-      setError('Failed to submit problem. Check GitHub PAT configuration.')
+      setError('Failed to submit problem. Please try again later.')
     } finally {
       setLoading(false)
     }

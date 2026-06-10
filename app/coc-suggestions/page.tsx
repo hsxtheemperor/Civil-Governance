@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Header from '@/components/Header'
 import Footer from '@/components/Footer'
-import { getCoCSuggestions } from '@/lib/github'
+import { fetchCoCSuggestions } from '@/app/actions'
 
 export default function CoCSuggestionsPage() {
   const [suggestions, setSuggestions] = useState<any[]>([])
@@ -19,8 +19,12 @@ export default function CoCSuggestionsPage() {
   async function loadSuggestions() {
     try {
       setLoading(true)
-      const data = await getCoCSuggestions()
-      setSuggestions(data.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()))
+      const result = await fetchCoCSuggestions()
+      if (!result.ok) {
+        setError(result.error)
+        return
+      }
+      setSuggestions([...result.data].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()))
       setError(null)
     } catch (err) {
       console.error('[CJP] Error loading CoC suggestions:', err)
